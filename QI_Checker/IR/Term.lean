@@ -1,0 +1,133 @@
+import QI_Checker.IR.TermType
+import QI_Checker.IR.Op
+
+/-!
+Based on Cedar's Term language.
+(https://github.com/cedar-policy/cedar-spec/blob/main/cedar-lean/Cedar/SymCC/Term.lean)
+This file defines the Term language, a strongly and simply typed IR.
+-/
+
+namespace IR
+
+inductive TermPrim : Type where
+  | bool   : Bool → TermPrim
+deriving instance Repr, Inhabited, DecidableEq for TermPrim
+
+def TermPrim.mkName : TermPrim → String
+  | .bool _   => "bool"
+
+def TermPrim.lt : TermPrim → TermPrim → Bool
+  | .bool b₁, .bool b₂         => b₁ < b₂
+
+instance : LT TermPrim where
+  lt := fun x y => TermPrim.lt x y
+
+instance TermPrim.decLt (x y : TermPrim) : Decidable (x < y) :=
+  if h : TermPrim.lt x y then isTrue h else isFalse h
+
+inductive QuantifierKind
+  | all
+  | exist
+deriving Repr, DecidableEq, Hashable
+
+inductive Term : Type where
+  | prim    : TermPrim → Term
+  | var     : TermVar → Term
+  | none    : TermType → Term
+  | some    : Term → Term   --?
+  | app     : Op → (args: List Term) → (retTy: TermType) → Term
+  | quant   : QuantifierKind → (args: List TermType) → (tr: Term) → (body: Term) → Term
+deriving instance Repr, Inhabited for Term
+
+def Term.isVar (t : Term) : Bool :=
+  match t with
+  | .var _ => true
+  | _ => false
+
+mutual
+def Term.hasDecEq (t t' : Term) : Decidable (t = t') := by
+  cases t <;> cases t' <;>
+  try { apply isFalse ; intro h ; injection h }
+  case prim.prim v₁ v₂ | none.none v₁ v₂ | var.var v₁ v₂ =>
+    exact match decEq v₁ v₂ with
+    | isTrue h => isTrue (by rw [h])
+    | isFalse _ => isFalse (by intro h; injection h; contradiction)
+  case some.some t t' =>
+    exact match Term.hasDecEq t t' with
+    | isTrue h => isTrue (by rw [h])
+    | isFalse _ => isFalse (by intro h; injection h; contradiction)
+  case app.app op ts ty op' ts' ty' =>
+    exact match decEq op op', Term.hasListDec ts ts', decEq ty ty' with
+    | isTrue h₁, isTrue h₂, isTrue h₃ => isTrue (by rw [h₁, h₂, h₃])
+    | isFalse h₁, _, _ | _, isFalse h₁, _ | _, _, isFalse h₁ =>
+      isFalse (by intro h₂; simp [h₁] at h₂)
+  case quant.quant qk args tr t qk' args' tr' t' =>
+    exact match decEq qk qk', decEq args args', Term.hasDecEq tr tr', Term.hasDecEq t t' with
+    | isTrue h₁, isTrue h₂, isTrue h₃, isTrue h₄ => isTrue (by rw [h₁, h₂, h₃, h₄])
+    | isFalse h₁, _, _, _ | _, isFalse h₁, _, _ | _, _, isFalse h₁, _ | _, _, _, isFalse h₁ =>
+      isFalse (by intro h₂; simp [h₁] at h₂)
+
+def Term.hasListDec (ts₁ ts₂ : List Term) : Decidable (ts₁ = ts₂) :=
+  match ts₁, ts₂ with
+  | [], [] => isTrue rfl
+  | _::_, [] | [], _::_ => isFalse (by intro; contradiction)
+  | t₁ :: tl₁, t₂ :: tl₂ =>
+    match Term.hasDecEq t₁ t₂ with
+    | isTrue h₁ =>
+        match Term.hasListDec tl₁ tl₂ with
+        | isTrue h₂ => isTrue (by subst h₁ h₂; rfl)
+        | isFalse _ => isFalse (by simp; intros; assumption)
+    | isFalse _ => isFalse (by simp; intros; contradiction)
+end
+
+instance : DecidableEq Term := Term.hasDecEq
+
+def hashTerm (t: Term): UInt64 :=
+  match t with
+    | .prim _ => 2
+    | .var _ => 3
+    | .none _ => 5
+    | .some _ => 7
+    | .app op _ retTy => 11 * (hash op) * (hash retTy)
+    | .quant qk args _ _ => 13 * (hash qk) * (hash args)
+
+instance : Hashable Term where
+  hash := hashTerm
+
+def Term.mkName : Term → String
+  | .prim _     => "prim"
+  | .var _      => "var"
+  | .none _     => "none"
+  | .some _     => "some"
+  | .app _ _ _  => "app"
+  | .quant .all _ _ _ => "all"
+  | .quant .exist _ _ _ => "exists"
+
+
+abbrev Term.bool (b : Bool) : Term := .prim (.bool b)
+
+def TermPrim.typeOf : TermPrim → TermType
+  | .bool _           => .bool
+
+def Term.typeOf : Term → TermType
+  | .prim l       => l.typeOf
+  | .var v        => v.ty
+  | .none ty      => .option ty
+  | .some t       => .option t.typeOf
+  | .app _ _ ty   => ty
+  | .quant _ _ _ _ => .bool
+
+
+def Term.isLiteral : Term → Bool
+  | .prim _
+  | .none _               => true
+  | .some t               => t.isLiteral
+  | _                     => false
+
+instance : Coe Bool Term where
+  coe b := .prim (.bool b)
+
+instance : Coe TermVar Term where
+  coe v := .var v
+
+end IR
