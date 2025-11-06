@@ -16,7 +16,6 @@ def TermPrimType.mkName : TermPrimType → String
 --⟨sort⟩ ::= ⟨identifier⟩ | ( ⟨identifier⟩ ⟨sort⟩* )
 inductive TermType where
   | prim (pty : TermPrimType)
-  --| option (ty : TermType)
   | constr (id : String) (args : List TermType)
 deriving instance Repr, Inhabited for TermType
 
@@ -27,7 +26,6 @@ nested or mutual induction types.
 @[induction_eliminator]
 theorem TermType.induct {P : TermType → Prop}
   (prim : ∀pty, P (.prim pty))
-  --(option : ∀ty, P ty → P (.option ty))
   (constr : ∀id args, (∀ ty ∈ args, P ty) → P (.constr id args)) :
   ∀ ty, P ty := by
   intro n
@@ -37,7 +35,6 @@ theorem TermType.induct {P : TermType → Prop}
 
 def TermType.mkName : TermType → String
   | .prim _   => "prim"
-  --| option _ => "option"
   | .constr id _ => id
 
 instance : Hashable TermType where
@@ -46,7 +43,6 @@ instance : Hashable TermType where
 def TermType.beq : TermType → TermType → Bool
   | .prim pty₁, .prim pty₂ => pty₁ == pty₂
   | .constr id₁ args₁, .constr id₂ args₂ => id₁ == id₂ && go args₁ args₂
-  --| .option ty₁, .option ty₂ => TermType.beq ty₁ ty₂
   | _, _ => false
   where go : List TermType → List TermType → Bool
   | [], [] => true
@@ -54,7 +50,7 @@ def TermType.beq : TermType → TermType → Bool
   | a1 :: rst1, a2 :: rst2 => TermType.beq a1 a2 && go rst1 rst2
 
 @[simp]
-theorem TermType.beq_refl : TermType.beq ty ty := by
+theorem TermType.beq_refl (ty: TermType) : TermType.beq ty ty := by
   induction ty <;> simp_all [TermType.beq]
   rename_i name args ih
   induction args
@@ -71,10 +67,6 @@ instance : DecidableEq TermType :=
                 induction x generalizing y
                 case prim =>
                   unfold TermType.beq at h <;> split at h <;> simp_all
-                -- case option =>
-                --   unfold TermType.beq at h <;> split at h <;> simp_all
-                --   rename_i _ _ _ _ ty2 h1 _
-                --   exact h1 ty2 h
                 case constr =>
                   rename_i id args ih
                   cases y <;> try simp_all [TermType.beq]
