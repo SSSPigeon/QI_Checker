@@ -33,8 +33,8 @@ deriving Repr, DecidableEq, Hashable
 inductive Term : Type where
   | prim    : TermPrim → Term
   | var     : TermVar → Term
-  | none    : TermType → Term
-  | some    : Term → Term   --?
+  --| none    : TermType → Term
+  --| some    : Term → Term   --?
   | app     : Op → (args: List Term) → (retTy: TermType) → Term
   | quant   : QuantifierKind → (args: List TermType) → (tr: Term) → (body: Term) → Term
 deriving instance Repr, Inhabited for Term
@@ -48,14 +48,14 @@ mutual
 def Term.hasDecEq (t t' : Term) : Decidable (t = t') := by
   cases t <;> cases t' <;>
   try { apply isFalse ; intro h ; injection h }
-  case prim.prim v₁ v₂ | none.none v₁ v₂ | var.var v₁ v₂ =>
+  case prim.prim v₁ v₂ | var.var v₁ v₂ => --| none.none v₁ v₂
     exact match decEq v₁ v₂ with
     | isTrue h => isTrue (by rw [h])
     | isFalse _ => isFalse (by intro h; injection h; contradiction)
-  case some.some t t' =>
-    exact match Term.hasDecEq t t' with
-    | isTrue h => isTrue (by rw [h])
-    | isFalse _ => isFalse (by intro h; injection h; contradiction)
+  -- case some.some t t' =>
+  --   exact match Term.hasDecEq t t' with
+  --   | isTrue h => isTrue (by rw [h])
+  --   | isFalse _ => isFalse (by intro h; injection h; contradiction)
   case app.app op ts ty op' ts' ty' =>
     exact match decEq op op', Term.hasListDec ts ts', decEq ty ty' with
     | isTrue h₁, isTrue h₂, isTrue h₃ => isTrue (by rw [h₁, h₂, h₃])
@@ -86,8 +86,8 @@ def hashTerm (t: Term): UInt64 :=
   match t with
     | .prim _ => 2
     | .var _ => 3
-    | .none _ => 5
-    | .some _ => 7
+    -- | .none _ => 5
+    -- | .some _ => 7
     | .app op _ retTy => 11 * (hash op) * (hash retTy)
     | .quant qk args _ _ => 13 * (hash qk) * (hash args)
 
@@ -97,8 +97,8 @@ instance : Hashable Term where
 def Term.mkName : Term → String
   | .prim _     => "prim"
   | .var _      => "var"
-  | .none _     => "none"
-  | .some _     => "some"
+  --| .none _     => "none"
+  --| .some _     => "some"
   | .app _ _ _  => "app"
   | .quant .all _ _ _ => "all"
   | .quant .exist _ _ _ => "exists"
@@ -112,16 +112,16 @@ def TermPrim.typeOf : TermPrim → TermType
 def Term.typeOf : Term → TermType
   | .prim l       => l.typeOf
   | .var v        => v.ty
-  | .none ty      => .option ty
-  | .some t       => .option t.typeOf
+  -- | .none ty      => .option ty
+  -- | .some t       => .option t.typeOf
   | .app _ _ ty   => ty
   | .quant _ _ _ _ => .bool
 
 
 def Term.isLiteral : Term → Bool
   | .prim _
-  | .none _               => true
-  | .some t               => t.isLiteral
+  -- | .none _               => true
+  -- | .some t               => t.isLiteral
   | _                     => false
 
 instance : Coe Bool Term where

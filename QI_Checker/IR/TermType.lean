@@ -13,9 +13,10 @@ deriving instance Repr, Inhabited, DecidableEq for TermPrimType
 def TermPrimType.mkName : TermPrimType → String
   | .bool     => "bool"
 
+--⟨sort⟩ ::= ⟨identifier⟩ | ( ⟨identifier⟩ ⟨sort⟩* )
 inductive TermType where
   | prim (pty : TermPrimType)
-  | option (ty : TermType)
+  --| option (ty : TermType)
   | constr (id : String) (args : List TermType)
 deriving instance Repr, Inhabited for TermType
 
@@ -26,7 +27,7 @@ nested or mutual induction types.
 @[induction_eliminator]
 theorem TermType.induct {P : TermType → Prop}
   (prim : ∀pty, P (.prim pty))
-  (option : ∀ty, P ty → P (.option ty))
+  --(option : ∀ty, P ty → P (.option ty))
   (constr : ∀id args, (∀ ty ∈ args, P ty) → P (.constr id args)) :
   ∀ ty, P ty := by
   intro n
@@ -36,7 +37,7 @@ theorem TermType.induct {P : TermType → Prop}
 
 def TermType.mkName : TermType → String
   | .prim _   => "prim"
-  | option _ => "option"
+  --| option _ => "option"
   | .constr id _ => id
 
 instance : Hashable TermType where
@@ -45,7 +46,7 @@ instance : Hashable TermType where
 def TermType.beq : TermType → TermType → Bool
   | .prim pty₁, .prim pty₂ => pty₁ == pty₂
   | .constr id₁ args₁, .constr id₂ args₂ => id₁ == id₂ && go args₁ args₂
-  | .option ty₁, .option ty₂ => TermType.beq ty₁ ty₂
+  --| .option ty₁, .option ty₂ => TermType.beq ty₁ ty₂
   | _, _ => false
   where go : List TermType → List TermType → Bool
   | [], [] => true
@@ -70,10 +71,10 @@ instance : DecidableEq TermType :=
                 induction x generalizing y
                 case prim =>
                   unfold TermType.beq at h <;> split at h <;> simp_all
-                case option =>
-                  unfold TermType.beq at h <;> split at h <;> simp_all
-                  rename_i _ _ _ _ ty2 h1 _
-                  exact h1 ty2 h
+                -- case option =>
+                --   unfold TermType.beq at h <;> split at h <;> simp_all
+                --   rename_i _ _ _ _ ty2 h1 _
+                --   exact h1 ty2 h
                 case constr =>
                   rename_i id args ih
                   cases y <;> try simp_all [TermType.beq]
@@ -96,10 +97,10 @@ instance : DecidableEq TermType :=
                   unfold TermType.beq at h; split at h <;> simp_all
                   rename_i pty _ _ _ h
                   exact fun a ↦ h pty (id (Eq.symm a))
-                case option =>
-                  unfold TermType.beq at h <;> split at h <;> simp_all
-                  rename_i ty _ _ _ _ h2
-                  exact fun a => h2 ty ty rfl (id (Eq.symm a))
+                -- case option =>
+                --   unfold TermType.beq at h <;> split at h <;> simp_all
+                --   rename_i ty _ _ _ _ h2
+                --   exact fun a => h2 ty ty rfl (id (Eq.symm a))
                 case constr =>
                   rename_i id args ih
                   cases y <;> try simp_all [TermType.beq]
