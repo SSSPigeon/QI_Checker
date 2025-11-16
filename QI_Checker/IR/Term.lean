@@ -33,7 +33,7 @@ deriving Repr, DecidableEq, Hashable
 inductive Term : Type where
   | prim    : TermPrim → Term
   | var     : TermVar → Term
-  | app     : Op → (args: List Term) → (retTy: TermType) → Term
+  | app     : Op → (args: List Term) → Term
   | quant   : QuantifierKind → (args: List TermType) → (body: Term) → Term
 deriving instance Repr, Inhabited for Term
 
@@ -50,10 +50,10 @@ def Term.hasDecEq (t t' : Term) : Decidable (t = t') := by
     exact match decEq v₁ v₂ with
     | isTrue h => isTrue (by rw [h])
     | isFalse _ => isFalse (by intro h; injection h; contradiction)
-  case app.app op ts ty op' ts' ty' =>
-    exact match decEq op op', Term.hasListDec ts ts', decEq ty ty' with
-    | isTrue h₁, isTrue h₂, isTrue h₃ => isTrue (by rw [h₁, h₂, h₃])
-    | isFalse h₁, _, _ | _, isFalse h₁, _ | _, _, isFalse h₁ =>
+  case app.app op ts op' ts' =>
+    exact match decEq op op', Term.hasListDec ts ts' with
+    | isTrue h₁, isTrue h₂ => isTrue (by rw [h₁, h₂])
+    | isFalse h₁, _ | _, isFalse h₁  =>
       isFalse (by intro h₂; simp [h₁] at h₂)
   case quant.quant qk args t qk' args' t' =>
     exact match decEq qk qk', decEq args args', Term.hasDecEq t t' with
@@ -80,7 +80,7 @@ def hashTerm (t: Term): UInt64 :=
   match t with
     | .prim _ => 2
     | .var _ => 3
-    | .app op _ retTy => 11 * (hash op) * (hash retTy)
+    | .app op _ => 11 * (hash op)
     | .quant qk args _ => 13 * (hash qk) * (hash args)
 
 instance : Hashable Term where
@@ -89,7 +89,7 @@ instance : Hashable Term where
 def Term.mkName : Term → String
   | .prim _     => "prim"
   | .var _      => "var"
-  | .app _ _ _  => "app"
+  | .app _ _  => "app"
   | .quant .all __ _ => "all"
   | .quant .exist _ _ => "exists"
 
@@ -98,12 +98,6 @@ abbrev Term.bool (b : Bool) : Term := .prim (.bool b)
 
 def TermPrim.typeOf : TermPrim → TermType
   | .bool _           => .bool
-
-def Term.typeOf : Term → TermType
-  | .prim l       => l.typeOf
-  | .var v        => v.ty
-  | .app _ _ ty   => ty
-  | .quant _ _ _ => .bool
 
 
 def Term.isLiteral : Term → Bool
