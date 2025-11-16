@@ -34,7 +34,7 @@ inductive Term : Type where
   | prim    : TermPrim → Term
   | var     : TermVar → Term
   | app     : Op → (args: List Term) → (retTy: TermType) → Term
-  | quant   : QuantifierKind → (args: List TermType) → (tr: Term) → (body: Term) → Term
+  | quant   : QuantifierKind → (args: List TermType) → (body: Term) → Term
 deriving instance Repr, Inhabited for Term
 
 def Term.isVar (t : Term) : Bool :=
