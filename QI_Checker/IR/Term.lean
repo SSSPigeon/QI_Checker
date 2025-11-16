@@ -32,7 +32,7 @@ deriving Repr, DecidableEq, Hashable
 
 inductive Term : Type where
   | prim    : TermPrim → Term
-  | var     : TermVar → Term
+  | var     : Nat → Term
   | app     : Op → (args: List Term) → Term
   | quant   : QuantifierKind → (args: List TermType) → (body: Term) → Term
 deriving instance Repr, Inhabited for Term
@@ -107,7 +107,7 @@ def Term.isLiteral : Term → Bool
 instance : Coe Bool Term where
   coe b := .prim (.bool b)
 
-instance : Coe TermVar Term where
+instance : Coe Nat Term where
   coe v := .var v
 
 end IR
