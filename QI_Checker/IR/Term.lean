@@ -55,10 +55,10 @@ def Term.hasDecEq (t t' : Term) : Decidable (t = t') := by
     | isTrue h₁, isTrue h₂, isTrue h₃ => isTrue (by rw [h₁, h₂, h₃])
     | isFalse h₁, _, _ | _, isFalse h₁, _ | _, _, isFalse h₁ =>
       isFalse (by intro h₂; simp [h₁] at h₂)
-  case quant.quant qk args tr t qk' args' tr' t' =>
-    exact match decEq qk qk', decEq args args', Term.hasDecEq tr tr', Term.hasDecEq t t' with
-    | isTrue h₁, isTrue h₂, isTrue h₃, isTrue h₄ => isTrue (by rw [h₁, h₂, h₃, h₄])
-    | isFalse h₁, _, _, _ | _, isFalse h₁, _, _ | _, _, isFalse h₁, _ | _, _, _, isFalse h₁ =>
+  case quant.quant qk args t qk' args' t' =>
+    exact match decEq qk qk', decEq args args', Term.hasDecEq t t' with
+    | isTrue h₁, isTrue h₂, isTrue h₃ => isTrue (by rw [h₁, h₂, h₃])
+    | isFalse h₁, _, _ | _, isFalse h₁, _ | _, _, isFalse h₁ =>
       isFalse (by intro h₂; simp [h₁] at h₂)
 
 def Term.hasListDec (ts₁ ts₂ : List Term) : Decidable (ts₁ = ts₂) :=
@@ -81,7 +81,7 @@ def hashTerm (t: Term): UInt64 :=
     | .prim _ => 2
     | .var _ => 3
     | .app op _ retTy => 11 * (hash op) * (hash retTy)
-    | .quant qk args _ _ => 13 * (hash qk) * (hash args)
+    | .quant qk args _ => 13 * (hash qk) * (hash args)
 
 instance : Hashable Term where
   hash := hashTerm
@@ -90,8 +90,8 @@ def Term.mkName : Term → String
   | .prim _     => "prim"
   | .var _      => "var"
   | .app _ _ _  => "app"
-  | .quant .all _ _ _ => "all"
-  | .quant .exist _ _ _ => "exists"
+  | .quant .all __ _ => "all"
+  | .quant .exist _ _ => "exists"
 
 
 abbrev Term.bool (b : Bool) : Term := .prim (.bool b)
@@ -103,7 +103,7 @@ def Term.typeOf : Term → TermType
   | .prim l       => l.typeOf
   | .var v        => v.ty
   | .app _ _ ty   => ty
-  | .quant _ _ _ _ => .bool
+  | .quant _ _ _ => .bool
 
 
 def Term.isLiteral : Term → Bool
