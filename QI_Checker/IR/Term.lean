@@ -1,3 +1,5 @@
+import Mathlib.Data.List.Defs
+import Mathlib.Data.List.Basic
 import QI_Checker.IR.TermType
 import QI_Checker.IR.Op
 
@@ -30,12 +32,28 @@ inductive QuantifierKind
   | exist
 deriving Repr, DecidableEq, Hashable
 
+
 inductive Term : Type where
   | prim    : TermPrim → Term
   | var     : Nat → Term
   | app     : Op → (args: List Term) → Term
-  | quant   : QuantifierKind → (args: List TermType) → (body: Term) → Term
+  | quant   : QuantifierKind → (bv: TermType) → (body: Term) → Term
 deriving instance Repr, Inhabited for Term
+
+@[induction_eliminator]
+theorem Term.induct {P : Term → Prop}
+  (prim : ∀t, P (.prim t))
+  (var: ∀v, P (.var v))
+  (app: ∀op args, (∀ t ∈ args, P t) → P (.app op args))
+  (quant: ∀q args body, P body → P (.quant q args body)) :
+  ∀ ty, P ty := by
+  intro t
+  let motive₁ := fun t => P t
+  let motive₂ := fun ts => List.Forall P ts
+  apply @Term.recOn (motive_1 := motive₁) (motive_2 := motive₂) <;> try assumption
+  case nil => exact trivial
+  all_goals grind[List.forall_iff_forall_mem]
+
 
 def Term.isVar (t : Term) : Bool :=
   match t with
