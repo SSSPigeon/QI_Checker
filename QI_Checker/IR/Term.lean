@@ -1,5 +1,7 @@
 import Mathlib.Data.List.Defs
 import Mathlib.Data.List.Basic
+import Init.Data.Repr
+import Init.Data.Option.Basic
 import QI_Checker.IR.TermType
 import QI_Checker.IR.Op
 
@@ -39,6 +41,17 @@ inductive Term : Type where
   | app     : Op → (args: List Term) → Term
   | quant   : QuantifierKind → (bv: TermType) → (body: Term) → Term
 deriving instance Repr, Inhabited for Term
+
+def Term.mkName : Term → String
+  | .prim (.bool true) => "true"
+  | .prim (.bool false) => "false"
+  | .var v => "v" ++ (toString v)
+  | .app op args =>
+    let agrs_str := args.foldl (fun acc t =>
+      if acc == "" then t.mkName else acc ++ ", " ++ t.mkName) ""
+    op.mkName ++ "(" ++ agrs_str ++ ")"
+  | .quant .all bv body => "forall " ++ bv.mkName ++ ". " ++ body.mkName
+  | .quant .exist bv body => "exists " ++ bv.mkName ++ ". " ++ body.mkName
 
 @[induction_eliminator]
 theorem Term.induct {P : Term → Prop}
@@ -104,12 +117,6 @@ def hashTerm (t: Term): UInt64 :=
 instance : Hashable Term where
   hash := hashTerm
 
-def Term.mkName : Term → String
-  | .prim _     => "prim"
-  | .var _      => "var"
-  | .app _ _  => "app"
-  | .quant .all __ _ => "all"
-  | .quant .exist _ _ => "exists"
 
 
 abbrev Term.bool (b : Bool) : Term := .prim (.bool b)
