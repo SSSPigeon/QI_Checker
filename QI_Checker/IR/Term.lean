@@ -46,14 +46,25 @@ deriving instance Repr, Inhabited for Term
 def Term.mkName : Term → String
   | .prim (.bool true) => "true"
   | .prim (.bool false) => "false"
-  | .const c => "const " ++ c
+  | .const c => "(const " ++ c ++ ")"
   | .var v => "v" ++ (toString v)
   | .app op args =>
     let agrs_str := args.foldl (fun acc t =>
       if acc == "" then t.mkName else acc ++ ", " ++ t.mkName) ""
     op.mkName ++ "(" ++ agrs_str ++ ")"
-  | .quant .all bv body => "forall " ++ bv.mkName ++ ". " ++ body.mkName
-  | .quant .exist bv body => "exists " ++ bv.mkName ++ ". " ++ body.mkName
+  | .quant .all bv body => "∀ " ++ bv.mkName ++ ". " ++ body.mkName
+  | .quant .exist bv body => "∃ " ++ bv.mkName ++ ". " ++ body.mkName
+
+#eval (Term.quant .all (TermType.prim .bool) (.var 0)).mkName
+
+abbrev ex2 :=  Term.quant .all (TermType.prim .bool) (Term.quant .all (TermType.prim .bool) (.app Op.eq [(.var 0), (.var 1)]))
+#eval ex2.mkName
+
+def σ₁ : Nat → Term := fun i =>
+  match i with
+  | 0 => .prim (.bool true)
+  | j => .var j
+
 
 @[induction_eliminator]
 theorem Term.induct {P : Term → Prop}

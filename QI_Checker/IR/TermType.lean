@@ -34,7 +34,7 @@ theorem TermType.induct {P : TermType → Prop}
   case cons => simp_all
 
 def TermType.mkName : TermType → String
-  | .prim _   => "prim"
+  | .prim p   => "prim " ++ p.mkName
   | .constr id _ => id
 
 instance : Hashable TermType where
