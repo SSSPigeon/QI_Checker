@@ -38,6 +38,7 @@ deriving Repr, DecidableEq, Hashable
 inductive Term : Type where
   | prim    : TermPrim → Term
   | var     : Nat → Term
+  | const   : String → Term
   | app     : Op → (args: List Term) → Term
   | quant   : QuantifierKind → (bv: TermType) → (body: Term) → Term
 deriving instance Repr, Inhabited for Term
@@ -45,6 +46,7 @@ deriving instance Repr, Inhabited for Term
 def Term.mkName : Term → String
   | .prim (.bool true) => "true"
   | .prim (.bool false) => "false"
+  | .const c => "const " ++ c
   | .var v => "v" ++ (toString v)
   | .app op args =>
     let agrs_str := args.foldl (fun acc t =>
@@ -57,6 +59,7 @@ def Term.mkName : Term → String
 theorem Term.induct {P : Term → Prop}
   (prim : ∀t, P (.prim t))
   (var: ∀v, P (.var v))
+  (const: ∀c, P (.const c))
   (app: ∀op args, (∀ t ∈ args, P t) → P (.app op args))
   (quant: ∀q args body, P body → P (.quant q args body)) :
   ∀ ty, P ty := by
@@ -77,7 +80,7 @@ mutual
 def Term.hasDecEq (t t' : Term) : Decidable (t = t') := by
   cases t <;> cases t' <;>
   try { apply isFalse ; intro h ; injection h }
-  case prim.prim v₁ v₂ | var.var v₁ v₂ =>
+  case prim.prim v₁ v₂ | var.var v₁ v₂ | const.const v₁ v₂ =>
     exact match decEq v₁ v₂ with
     | isTrue h => isTrue (by rw [h])
     | isFalse _ => isFalse (by intro h; injection h; contradiction)
@@ -111,8 +114,9 @@ def hashTerm (t: Term): UInt64 :=
   match t with
     | .prim _ => 2
     | .var _ => 3
-    | .app op _ => 11 * (hash op)
-    | .quant qk args _ => 13 * (hash qk) * (hash args)
+    | .const _ => 5
+    | .app op _ => 7 * (hash op)
+    | .quant qk args _ => 11 * (hash qk) * (hash args)
 
 instance : Hashable Term where
   hash := hashTerm

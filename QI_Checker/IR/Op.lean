@@ -8,11 +8,6 @@ This file defines the operators on Terms.
 
 namespace IR
 
--- structure TermVar where
---   id : Nat        -- de Bruijn index
---   ty : TermType
--- deriving Repr, DecidableEq, Inhabited
-
 structure UF where
   id : String
   args : List TermType
