@@ -14,7 +14,7 @@ def inst_step (inst_term: Term) (target: Term) : Term :=
   | .app op args => .app op (List.map (inst_step inst_term) args)
   | .quant _ _ body => body.subst sb
 
-
+/-- TODO: parallel instantiation, instantiation of inner binders -/
 def inst (inst_terms: List Term) (target: Term): Term :=
   match inst_terms with
   | .nil => target
