@@ -55,16 +55,6 @@ def Term.mkName : Term → String
   | .quant .all bv body => "∀ " ++ bv.mkName ++ ". " ++ body.mkName
   | .quant .exist bv body => "∃ " ++ bv.mkName ++ ". " ++ body.mkName
 
-#eval (Term.quant .all (TermType.prim .bool) (.var 0)).mkName
-
-abbrev ex2 :=  Term.quant .all (TermType.prim .bool) (Term.quant .all (TermType.prim .bool) (.app Op.eq [(.var 0), (.var 1)]))
-#eval ex2.mkName
-
-def σ₁ : Nat → Term := fun i =>
-  match i with
-  | 0 => .prim (.bool true)
-  | j => .var j
-
 
 @[induction_eliminator]
 theorem Term.induct {P : Term → Prop}
