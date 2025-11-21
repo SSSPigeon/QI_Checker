@@ -16,7 +16,7 @@ deriving Repr, DecidableEq, Inhabited
 
 instance : Hashable UF where
   hash := λ a => hash s!"{repr a}"
-
+--∀x∀y.x∧ y [true, false]
 inductive Op : Type where
   ---------- SMTLib core theory of equality with uninterpreted functions (`UF`) ----------
   ---------- https://smt-lib.org/theories-Core.shtml ----------
