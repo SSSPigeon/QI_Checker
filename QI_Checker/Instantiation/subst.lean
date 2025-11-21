@@ -36,7 +36,6 @@ theorem upr_id : upr id = id := by
 def rename (ξ : Nat → Nat) : Term → Term
   | .prim p => .prim p
   | .var v => .var (ξ v)
-  | .const c => .const c
   | .app op args => .app op (List.map (rename ξ) args)
   | .quant q bv body => .quant q bv (body.rename (upr ξ))
 
@@ -63,7 +62,6 @@ theorem up_var : up Term.var = Term.var := by
 def subst (σ : Nat → Term) : Term → Term
   | .prim p => .prim p
   | .var v => σ v
-  | .const c => .const c
   | .app op args => .app op (List.map (subst σ) args)
   | .quant q bv body => .quant q bv (body.subst (up σ))
 

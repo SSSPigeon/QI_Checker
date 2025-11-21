@@ -10,7 +10,6 @@ def inst_step (inst_term: Term) (target: Term) : Term :=
   match target with
   | .prim p => .prim p
   | .var v => .var v
-  | .const c => .const c
   | .app op args => .app op (List.map (inst_step inst_term) args)
   | .quant _ _ body => body.subst sb
 
